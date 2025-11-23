@@ -1,0 +1,4 @@
+https://www.geeksforgeeks.org/machine-learning/major-kernel-functions-in-support-vector-machine-svm/
+https://arxiv.org/pdf/2203.05768
+https://www.csie.ntu.edu.tw/~cjlin/libsvm/
+https://www.cs.princeton.edu/courses/archive/fall18/cos521/Lectures/lec17.pdf
