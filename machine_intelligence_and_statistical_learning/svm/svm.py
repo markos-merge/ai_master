@@ -2,11 +2,13 @@ import numpy as np
 from cvxopt import matrix
 from cvxopt.solvers import qp, options
 from scipy.spatial.distance import cdist
+import pickle
 
 class SVM:
 	def __init__(self, kernel, gamma = 0.1, C = 1., pow = 1. ):
 		self.C = C
 		self.gamma = gamma
+		self.kernel_name = kernel
 		if kernel == "linear":
 			self.kernel = self._linear_kernel
 		elif kernel == "poly":
@@ -75,6 +77,8 @@ class SVM:
 		scores = (self.alphas * self.sv_y) @ sv_K
 		self.b = np.mean(self.sv_y - scores)
 
+		
+
 	def project(self, x_in):
 		y_predict = np.zeros(len(x_in))
 		for j in range( len( x_in) ):
@@ -85,6 +89,37 @@ class SVM:
 
 	def predict(self, x_in):
 		return np.sign(self.project(x_in))
+
+	def save_to_file( self, filename ):
+		"""Saves the SVM model state to a file using pickle."""
+		with open( filename, 'wb' ) as f:
+			# The 'pow' attribute might not exist for all kernels, so we get it safely.
+			power = getattr(self, 'pow', None)
+			
+			# Data to be saved
+			save_data = {
+				'kernel_name': self.kernel_name,
+				'C': self.C,
+				'gamma': self.gamma,
+				'pow': power,
+				'alphas': self.alphas,
+				'sv_x': self.sv_x,
+				'sv_y': self.sv_y,
+				'b': self.b
+			}
+			pickle.dump(save_data, f)
+		print(f"Model saved to {filename}")
+
+	@classmethod
+	def load_from_file(cls, filename):
+		"""Loads an SVM model from a file."""
+		with open(filename, 'rb') as f:
+			save_data = pickle.load(f)
+		
+		model = cls(kernel=save_data['kernel_name'], gamma=save_data['gamma'], C=save_data['C'], pow=save_data.get('pow', 1.0))
+		model.alphas, model.sv_x, model.sv_y, model.b = save_data['alphas'], save_data['sv_x'], save_data['sv_y'], save_data['b']
+		print(f"Model loaded from {filename}")
+		return model
 
 
 if __name__ == "__main__":
@@ -107,3 +142,12 @@ if __name__ == "__main__":
 	print(f"Model Bias (b): {svm.b}")
 	print(f"Training Accuracy: {accuracy:.2f}%")
 
+	# 4. Save the model to a file
+	model_filename = "svm_model.pkl"
+	svm.save_to_file(model_filename)
+
+	# 5. Load the model from the file and test it
+	loaded_svm = SVM.load_from_file(model_filename)
+	loaded_predictions = loaded_svm.predict(X)
+	loaded_accuracy = np.mean(loaded_predictions == y) * 100
+	print(f"Loaded Model Training Accuracy: {loaded_accuracy:.2f}%")

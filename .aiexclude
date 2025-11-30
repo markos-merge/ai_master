@@ -6,7 +6,6 @@ cmake_install.cmake
 Makefile
 .cache/
 __pycache__/
-results/
 
 # Compiled Object files
 *.o
