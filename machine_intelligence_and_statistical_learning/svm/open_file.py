@@ -21,6 +21,12 @@ def load_CIFAR10( folder ):
 
 	return all_data
 
+def load_CIFAR10_testdata( folder ):
+	test_dict = unpickle( os.path.join( folder, 'test_batch' ) )
+	
+	#We return a list to not have conversions
+	return [test_dict]
+
 def load_label_names( folder ):
 	meta_dict = unpickle( os.path.join( folder, 'batches.meta' ) )
 	label_names = meta_dict[b'label_names']

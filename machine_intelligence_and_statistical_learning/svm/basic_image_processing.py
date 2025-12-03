@@ -2,6 +2,7 @@ from PIL import Image
 import numpy as np
 from skimage.feature import hog
 import pywt
+from joblib import Parallel, delayed
 
 import cv2
 def show_image(image_data, width=32, height=32, is_grayscale=True):
@@ -79,6 +80,29 @@ def extract_hog_features(image_array, pixels_per_cell=(8, 8), cells_per_block=(2
 					   feature_vector=False)
 	# print( hog_features )
 	return hog_features[1].ravel()
+
+def extract_hog_features_wrapper( i, image_array, pixels_per_cell=(8, 8), cells_per_block=(2, 2) ):
+	return ( i, extract_hog_features( image_array, pixels_per_cell, cells_per_block ) )
+def to_hog( images ):
+	"""
+	Assumes the image 32 by 32 and it takes as input a numpy array of images and returns the
+	transformed hog images
+	"""
+	# Calculate the expected HOG feature vector length once.
+	# For a 32x32 image with 8x8 cells and 2x2 blocks per cell, this is 324.
+	hog_feature_length = len(extract_hog_features(images[0]))
+	ret = np.zeros((images.shape[0], hog_feature_length), dtype=np.float32)
+	tasks = []
+	for i in range( images.shape[0] ):
+		task = delayed(extract_hog_features_wrapper)( i, images[i] )
+		tasks.append( task )
+
+
+	results = Parallel(n_jobs=-1)(tqdm(tasks, desc="Extracting HOG Features"))
+	for i, hog_features in results:
+		ret[i] = hog_features
+
+	return ret
 
 def equalize_histogram(image_array, to_float=True):
 	"""

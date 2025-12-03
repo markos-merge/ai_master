@@ -1,30 +1,18 @@
 import numpy as np
-from sklearn.svm import SVC
+# from sklearn.svm import SVC
 from open_file import load_CIFAR10, images_to_numpy, load_label_names
 from basic_image_processing import show_image, transform_to_haar_cascades, extract_hog_features
-import svm as svc
+# import svm as svc
+
+from cuml.svm import SVC
 from sklearn.model_selection import train_test_split
-from sklearn.model_selection import GridSearchCV
+from cuml.model_selection import GridSearchCV
+from basic_databases_manipulation import getSamplesFromLabels, produceShuffledMatrices
+from basic_image_processing import to_hog
+# from sklearn.model_selection import GridSearchCV
+import cupy as cp
+import gc
 
-
-def getSamplesFromLabels( X, Y, label ):
-	mask_label = Y == label
-	
-	return X[mask_label], Y[mask_label]
-
-def transform_matrices( images ):
-	ret = np.zeros( ( images.shape[0], images[0].shape[0] ) )
-	for i in range( images.shape[0] ):
-		# ret[i] = transform_to_haar_cascades( images[i] )
-		ret[i] = extract_hog_features( images[i] )
-
-	return ret
-
-def produceShuffledMatrices(seed, x, y):
-	np.random.seed(seed)
-	shuffled_indices = np.random.permutation( len(x) )
-
-	return x[shuffled_indices], y[shuffled_indices]
 
 
 def trainSvcModelName( label_0, label_1, X, Y, seed = 0, name = None  ):
@@ -33,11 +21,13 @@ def trainSvcModelName( label_0, label_1, X, Y, seed = 0, name = None  ):
 	x1, _ = getSamplesFromLabels( X, Y, label_1 )
 	
 	x_data = np.vstack( ( x0, x1 ) )
-	x_data = transform_matrices( x_data )
+	x_data = to_hog( x_data )
 	y_data = np.hstack( (np.ones(len(x0)) * -1, np.ones(len(x1))) )
 	print(f"Combined data shape: X={x_data.shape}, Y={y_data.shape}")
 
 	x_shuffled, y_shuffled = produceShuffledMatrices( seed, x_data, y_data )
+	# x_shuffled = cp.asarray( x_shuffled )
+	# y_shuffled = cp.asarray( y_shuffled )
 	print("Data shuffled.")
 	
 
@@ -53,15 +43,17 @@ def trainSvcModelName( label_0, label_1, X, Y, seed = 0, name = None  ):
 	# print(f"  -> Holdout Test Accuracy: {accuracy:.2f}%")
 
 	parameters = { 'C': np.arange( 0.06, 0.6, 0.02 ), 'gamma': np.arange( 0.01, 1., .2 ) }
-	grid_search = GridSearchCV( SVC( kernel = "rbf" ), param_grid = parameters, n_jobs = -1, verbose = 2 )
+	# parameters = { 'C': np.arange( 0.06, 0.6, 0.1 ), 'gamma': np.arange( 0.01, 1., .5 ) }
+	# model = SVC( kernel = "rbf", gamma = 0.1, C = 0.85 )
+	model = GridSearchCV( SVC( kernel = "rbf" ), param_grid = parameters, n_jobs = None, verbose = 2 )
 	# grid_searh.
-	grid_search.fit( x_data, y_data )
+	model.fit( x_shuffled, y_shuffled )
 	print("Best parameters found by GridSearchCV:")
-	print(grid_search.best_params_)
-	print(f"GridSearchCV Best Score (training set): {grid_search.best_score_:.2f}%")
+	print(model.best_params_)
+	print(f"GridSearchCV Best Score (training set): {model.best_score_:.2f}%")
+	best_svm = model.best_estimator_
 
-	best_svm = grid_search.best_estimator_
-	# predictions = best_svm.predict(x_test)
+	# # predictions = best_svm.predict(x_test)
 	# accuracy = np.mean(predictions == y_test) * 100
 	# print(f"  -> Holdout Test Accuracy with best estimator: {accuracy:.2f}%")
 
@@ -77,8 +69,8 @@ def trainSvcModelName( label_0, label_1, X, Y, seed = 0, name = None  ):
 		with open( report_filename, 'w' ) as f:
 			f.write(f"--- SVM Training Report for {name} ---\n")
 			f.write(f"Labels Classified: {label_0} vs {label_1}\n")
-			f.write(f"Best Parameters found by GridSearchCV: {grid_search.best_params_}\n")
-			f.write(f"GridSearchCV Best Score (training set): {grid_search.best_score_:.2f}%\n")
+			f.write(f"Best Parameters found by GridSearchCV: {model.best_params_}\n")
+			f.write(f"GridSearchCV Best Score (training set): {model.best_score_:.2f}%\n")
 		print(f"Training report saved to {report_filename}")
 
 
@@ -93,8 +85,17 @@ if __name__ == "__main__":
 	print(f"Converted to numpy arrays: X shape = {X.shape}, Y shape = {Y.shape}")
 
 	# CIFAR-10 labels: 3:cat, 5:dog
-	for i in range( 10 ):
-		for j in range( i + 1, 10 ):
+	i_start = 1
+	j_start = 7
+	for i in range( i_start, 10 ):
+		if not i == i_start:
+			j_start = i + 1
+		for j in range( j_start, 10 ):
 			label = str( i ) + "vs" + str( j )
 			print(f"Preparing to classify '{label_names[i]}' vs '{label_names[j]}'")
 			trainSvcModelName( i, j, X, Y, seed = 42, name = label )
+			gc.collect()
+			mempool = cp.get_default_memory_pool()
+			mempool.free_all_blocks()
+			pinned_mempool = cp.get_default_pinned_memory_pool()
+			pinned_mempool.free_all_blocks()
