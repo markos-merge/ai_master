@@ -1,14 +1,13 @@
 import numpy as np
 # from sklearn.svm import SVC
 from open_file import load_CIFAR10, images_to_numpy, load_label_names
-from basic_image_processing import show_image, transform_to_haar_cascades, extract_hog_features
+from basic_image_processing import to_hog
 # import svm as svc
 
 from cuml.svm import SVC
 from sklearn.model_selection import train_test_split
 from cuml.model_selection import GridSearchCV
 from basic_databases_manipulation import getSamplesFromLabels, produceShuffledMatrices
-from basic_image_processing import to_hog
 # from sklearn.model_selection import GridSearchCV
 import cupy as cp
 import gc
@@ -84,9 +83,8 @@ if __name__ == "__main__":
 
 	print(f"Converted to numpy arrays: X shape = {X.shape}, Y shape = {Y.shape}")
 
-	# CIFAR-10 labels: 3:cat, 5:dog
-	i_start = 1
-	j_start = 7
+	i_start = 0
+	j_start = 1
 	for i in range( i_start, 10 ):
 		if not i == i_start:
 			j_start = i + 1

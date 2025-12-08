@@ -1,2 +1,5 @@
 cifar-10
 results_sklearn_SVC
+*.joblib
+denoised_images
+tuburculosis

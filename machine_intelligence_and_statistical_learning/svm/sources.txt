@@ -2,3 +2,8 @@ https://www.geeksforgeeks.org/machine-learning/major-kernel-functions-in-support
 https://arxiv.org/pdf/2203.05768
 https://www.csie.ntu.edu.tw/~cjlin/libsvm/
 https://www.cs.princeton.edu/courses/archive/fall18/cos521/Lectures/lec17.pdf
+https://scikit-image.org/docs/0.25.x/auto_examples/features_detection/plot_hog.html
+
+https://www.kaggle.com/datasets/tawsifurrahman/tuberculosis-tb-chest-xray-dataset
+https://collectiveminds.health/articles/the-ultimate-guide-to-preprocessing-medical-images-techniques-tools-and-best-practices-for-enhanced-diagnosis
+https://pmc.ncbi.nlm.nih.gov/articles/PMC9325859/
