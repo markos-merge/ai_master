@@ -1,19 +1,24 @@
-from sklearn.svm import SVC
+# from sklearn.svm import SVC
+from cuml.svm import SVC
+import sys
+import os
+# Add the parent directory to the Python path to allow for module imports
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 from basic_databases_manipulation import getSamplesFromLabels, produceShuffledMatrices
 from basic_image_processing import to_hog
 from open_file import load_CIFAR10, load_CIFAR10_testdata, images_to_numpy, load_label_names
 import pickle
 import numpy as np
-import os
 from joblib import Parallel, delayed
 from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import classification_report, confusion_matrix
 from tqdm import tqdm
+import cupy as cu
 
 
 
 def getClassifiersFromCSVFile( csv_file, probability = False ):
-	# We need to gather the classifiers in order to retrain them, cause we saved the
-	# the classifiers as a cuml.SVC class instead of sklearn.SVC 
 	ret = {}
 	with open( csv_file, "r" ) as f:
 		lines = f.readlines()
@@ -60,7 +65,7 @@ def trainClassifiersFromCifar10( train_data_folder, classifiers, seed = 0 ):
 		task = delayed(train_pair)( i, j, x_train, y_train, classifier )
 		tasks.append( task )
 
-	results = Parallel(n_jobs=-1)(tqdm(tasks, desc="Training Classifiers"))
+	results = Parallel(n_jobs=1)(tqdm(tasks, desc="Training Classifiers"))
 
 	for label, clf in results:
 		classifiers[label] = clf
@@ -151,27 +156,18 @@ def predict_proba( classifiers, name, images ):
 
 def train_meta_classifier(classifiers, x_data, y_data):
 	print("Generating features for meta-classifier...")
-
-	# This is a much faster, vectorized way to create the meta features.
-	# Instead of iterating through each image, we predict probabilities for all images at once
-	# for each classifier.
-
-	# Ensure a consistent order for the features
 	sorted_names = sorted(classifiers.keys())
-
-	# Create a list of probability arrays, one for each classifier
 	tasks = []
 	for name in sorted_names:
 		task = delayed(predict_proba)(classifiers, name, x_data)
 		tasks.append( task )
 
-	all_probs = Parallel(n_jobs=-1)(tqdm(tasks, desc="Getting Probabilities"))
+	all_probs = Parallel(n_jobs=1)(tqdm(tasks, desc="Getting Probabilities"))
 	
 	all_probs_dict = dict(all_probs)
 	all_probs = [all_probs_dict[name] for name in sorted_names]
 	# all_probs = [classifiers[name].predict_proba(x_data) for name in tqdm(sorted_names, desc="Getting Probabilities")]
 
-	# Concatenate all probability arrays horizontally to form the meta-feature matrix
 	meta_features = np.hstack(all_probs)
 
 	X_meta = np.array(meta_features)
@@ -216,7 +212,7 @@ def test_classifiers_whole( all_classifiers_filename = None , probabilty = False
 
 		tasks.append( task )
 
-	results = Parallel(n_jobs=-1)(tqdm(tasks, desc="Testing Classifiers"))
+	results = Parallel(n_jobs=1)(tqdm(tasks, desc="Testing Classifiers"))
 
 	for img_cnt, predicted_label in results:
 		results_array[img_cnt] = predicted_label
@@ -224,24 +220,37 @@ def test_classifiers_whole( all_classifiers_filename = None , probabilty = False
 	results = results_array.astype( np.uint32 )
 
 	accuracy = np.mean( results == y_test ) * 100.
+	y_test = y_test.astype(np.uint32)
 
 	if all_classifiers_filename:
 		labels = load_label_names( test_data_folder )
+		label_names = [l.decode('utf-8') for l in labels]
+
+		report = classification_report(y_test, results, target_names=label_names)
+		cm = confusion_matrix(y_test, results)
+
 		with open( all_classifiers_filename, 'a' ) as f:
-			f.write(f"Total Accuracy: {accuracy:.2f}%\n")
-			f.write(f"Detailed Results: \n")
+			f.write(f"--- Overall Classification Statistics ---\n")
+			f.write(f"Total Accuracy: {accuracy:.2f}%\n\n")
+
+			f.write("Classification Report:\n")
+			f.write(report)
+			f.write("\n\n")
+
+			f.write("Confusion Matrix:\n")
+			f.write(np.array2string(cm))
+			f.write("\n\n--- Detailed Per-Image Results ---\n")
 			for i in range( x_test.shape[0] ):
-				f.write( f"Predicted {labels[results[i]]}, Actual {labels[y_test[i]]}, {get_str_if_found( results[i] == y_test[i] )}\n" )
+				f.write( f"Image {i}: Predicted '{label_names[results[i]]}', Actual '{label_names[y_test[i]]}' -> {get_str_if_found( results[i] == y_test[i] )}\n" )
 
 
 def run():
-	# run_and_train_classifiers()
-	# test_classifiers("inidividual_classifier_test_results.txt")
-	# test_classifiers_whole("all_classifiers_test_results.txt")
-
 	# run_and_train_classifiers( probability = True )
-	# test_classifiers("individual_classifier_test_results.txt")
-	test_classifiers_whole("all_classifiers_w_linear_regressor_test_results.txt", probabilty = True, use_meta_classifier= True )
+	# test_classifiers("inidividual_classifier_test_results_with_correct_hog_gpu.txt" )
+	# test_classifiers_whole("all_classifiers_test_results_with_correct_hog_gpu_probability_off.txt", probabilty = False )
+	# test_classifiers_whole("all_classifiers_test_results_with_correct_hog_gpu_probability_on.txt", probabilty = True )
+	test_classifiers_whole("all_classifiers_test_results_with_correct_hog_gpu_with_linear_regressor.txt", probabilty = True, use_meta_classifier= True )
+
 
 
 

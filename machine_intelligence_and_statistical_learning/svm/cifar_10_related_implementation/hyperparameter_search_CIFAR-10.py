@@ -28,33 +28,14 @@ def trainSvcModelName( label_0, label_1, X, Y, seed = 0, name = None  ):
 	# x_shuffled = cp.asarray( x_shuffled )
 	# y_shuffled = cp.asarray( y_shuffled )
 	print("Data shuffled.")
-	
-
-	# x_train, x_test, y_train, y_test = train_test_split( x_shuffled, y_shuffled, test_size=0.6, random_state = seed )
-	# print(f"Data split: {len(x_train)} training samples, {len(x_test)} testing samples.")
-
-	# svm = svc.SVM( kernel = "rbf", gamma = 1000., C = 10. )
-	# svm = SVC( kernel = "rbf", gamma = 0.001, C = 1 )
-	# print("Fitting libsvm (sklearn.svm.SVC) model...")
-	# svm.fit( x_train, y_train )
-	# predictions = svm.predict( x_test )
-	# accuracy = np.mean( predictions == y_test ) * 100
-	# print(f"  -> Holdout Test Accuracy: {accuracy:.2f}%")
 
 	parameters = { 'C': np.arange( 0.06, 0.6, 0.02 ), 'gamma': np.arange( 0.01, 1., .2 ) }
-	# parameters = { 'C': np.arange( 0.06, 0.6, 0.1 ), 'gamma': np.arange( 0.01, 1., .5 ) }
-	# model = SVC( kernel = "rbf", gamma = 0.1, C = 0.85 )
 	model = GridSearchCV( SVC( kernel = "rbf" ), param_grid = parameters, n_jobs = None, verbose = 2 )
-	# grid_searh.
 	model.fit( x_shuffled, y_shuffled )
 	print("Best parameters found by GridSearchCV:")
 	print(model.best_params_)
 	print(f"GridSearchCV Best Score (training set): {model.best_score_:.2f}%")
 	best_svm = model.best_estimator_
-
-	# # predictions = best_svm.predict(x_test)
-	# accuracy = np.mean(predictions == y_test) * 100
-	# print(f"  -> Holdout Test Accuracy with best estimator: {accuracy:.2f}%")
 
 	if name:
 		model_filename = f"./results/svm_model_{name}.pkl"

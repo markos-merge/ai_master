@@ -29,13 +29,11 @@ def crop_to_object(image):
 	thresh = threshold_otsu(image)
 	binary_mask = image < thresh
 
-	# Find contours of all objects in the mask
 	contours = find_contours(binary_mask, 0.8)
 
 	if not contours:
-		return image # Return original if no contours found
+		return image
 
-	# Find the largest contour by area
 	largest_contour = max(contours, key=lambda contour: contour.shape[0])
 
 	# Get the bounding box coordinates of the largest contour
@@ -92,15 +90,18 @@ class Outputter:
 			imsave( out_name, img_as_ubyte(image) )
 		except Exception as e:
 			print( f"Could not save file: {out_name}. Error: {e}" )
-			#we must ensure the out_name is removed, in order not to generate corrupt images
 			os.remove( out_name )
 			raise e
 
 
 def run():
-	outputter = Outputter( "./denoised_images")
-	read_images( "tuburculosis/TB_Chest_Radiography_Database/Normal", preprocessing = process_image, output_fun = outputter )
-	read_images( "tuburculosis/TB_Chest_Radiography_Database/Tuberculosis", preprocessing = process_image, output_fun = outputter )
+	script_dir = os.path.dirname(os.path.abspath(__file__))
+	base_dir = os.path.dirname(os.path.dirname(script_dir))
+
+	output_dir = os.path.join(base_dir, "denoised_images")
+	outputter = Outputter(output_dir)
+	read_images( os.path.join(base_dir, "tuburculosis/TB_Chest_Radiography_Database/Normal"), preprocessing = process_image, output_fun = outputter )
+	read_images( os.path.join(base_dir, "tuburculosis/TB_Chest_Radiography_Database/Tuberculosis"), preprocessing = process_image, output_fun = outputter )
 
 
 if __name__ == "__main__":

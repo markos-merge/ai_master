@@ -44,27 +44,22 @@ def prepareModel():
 		else:
 			raise Exception( "Unrecognized image type" )
 
-	# Split data into training and testing sets BEFORE augmentation
-	# This is crucial to prevent augmented data from leaking into the test set
-	x_train, x_test, y_train, y_test = train_test_split(x_data, y_data, test_size=0.2, random_state=42, stratify=y_data)
+	x_train, x_test, y_train, y_test = train_test_split(x_data, y_data, test_size=0.4, random_state=42, stratify=y_data)
 
-	# We are removing the aggressive undersampling.
-	# The class_weight parameter in SVC and the custom scorer are better
-	# suited to handle the imbalance without discarding data.
 	print(f"Original training set size: {len(x_train)}")
 	print(f"Original distribution: Normal={np.sum(y_train == -1)}, Tuberculosis={np.sum(y_train == 1)}")
 
 	param_grid = [
 		{
 			'kernel': ['rbf'],
-			'C': np.arange( 0.1, 1., .2 ),
+			'C': np.arange( 0.01, 1., .05 ),
 			'gamma': [1., 0.1, 0.01, 0.001, 0.0001, 'scale'] 
 		},
-		{	'kernel': ['poly'],
-			'C': np.arange( 0.1, 1., .2 ),
-			'gamma': [1., 0.1, 0.01, 0.001, 'scale'],
-			'degree': [3, 5],
-			'coef0': [-1.5, -1., .5, 0.01] }
+		# {	'kernel': ['poly'],
+		# 	'C': np.arange( 0.1, 1., .2 ),
+		# 	'gamma': [1., 0.1, 0.01, 0.001, 'scale'],
+		# 	'degree': [3, 5],
+		# 	'coef0': [-1.5, -1., .5, 0.01] }
 	]
 
 	class_weights = {-1: 0.2, 1: 0.8}
@@ -76,17 +71,14 @@ def prepareModel():
 	
 	custom_scorer = make_scorer(weighted_recall_scorer, greater_is_better=True)
 	
-	# Use the custom_scorer to guide the hyperparameter search
 	grid_search = GridSearchCV( SVC(class_weight=class_weights, probability=True), param_grid, cv = 3, verbose = 2, scoring=custom_scorer )
 	grid_search.fit(x_train, y_train)
 
 	svm_model = grid_search.best_estimator_
-	print(f"Best parameters: {grid_search.best_params_}")
+	
+	joblib.dump( svm_model, 'tuberculosis_svm_model.joblib' )
 
-	# Save the best model to a file
-	model_filename = 'best_svm_model.joblib'
-	joblib.dump(svm_model, model_filename)
-	print(f"Best model saved to {model_filename}")
+	print(f"Best parameters: {grid_search.best_params_}")
 
 	print("\n--- Evaluating model on the test set ---")
 	y_pred = svm_model.predict(x_test)
@@ -96,20 +88,41 @@ def prepareModel():
 	print(classification_report(y_test, y_pred, target_names=['Normal', 'Tuberculosis']))
 	print("Confusion Matrix:")
 	cm = confusion_matrix(y_test, y_pred)
-	plt.figure(figsize=(8, 6))
-	sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', 
-				xticklabels=['Normal', 'Tuberculosis'], 
-				yticklabels=['Normal', 'Tuberculosis'])
-	plt.xlabel('Predicted')
-	plt.ylabel('True')
-	plt.title('Confusion Matrix')
-	plt.savefig('confusion_matrix.png')
-	print("\nConfusion matrix plot saved to confusion_matrix.png")
+	print( cm )
 
 	return ( svm_model, x_test, y_test )
 
 def run():
 	prepareModel()
 
+def getExampleOfClassification( joblib_svm ):
+	joblib_svm = joblib.load( 'tuberculosis_svm_model.joblib' )
+	filenames, x_data = import_images( "denoised_images" )
+	y_data = np.zeros( x_data.shape[0] )
+
+	for i in range( len( filenames ) ):
+		name = filenames[i]
+		if name.startswith( "Normal" ):
+			y_data[i] = -1
+		elif name.startswith( "Tuberculosis" ):
+			y_data[i] = 1
+		else:
+			raise Exception( "Unrecognized image type" )
+
+	y_pred = joblib_svm.predict(x_data)
+
+	for i in range( len(y_data) ):
+		if y_data[i] != y_pred[i]:
+			if y_data[i] == -1:
+				print( "For Normal classified as Tuberculosis: " + filenames[i] )
+			else:
+				print( "For Tuberculosis classified as Normal: " + filenames[i] ) 
+		else:
+			if y_data[i] == -1:
+				print( "For Normal classified as Normal: " + filenames[i] )
+			else:
+				print( "For Tuberculosis classified as Tuberculosis: " + filenames[i] )
+
 if __name__ == "__main__":
 	run()
+	# getExampleOfClassification( "tuberculosis_svm_model.joblib" )

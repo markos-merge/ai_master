@@ -123,7 +123,6 @@ class SVM:
 
 
 if __name__ == "__main__":
-# 1. Create a simple, linearly separable dataset
 	np.random.seed(1)
 	X = np.vstack([
 		np.random.randn(20, 2) - [2, 2],
@@ -131,22 +130,18 @@ if __name__ == "__main__":
 	])
 	y = np.hstack([np.ones(20) * -1, np.ones(20)])
 
-	# 2. Create and train the SVM
 	print("Training a linear SVM...")
 	svm = SVM(kernel="rbf", C=1.0)
 	svm.fit(X, y)
 
-	# 3. Make predictions and check accuracy
 	predictions = svm.predict(X)
 	accuracy = np.mean(predictions == y) * 100
 	print(f"Model Bias (b): {svm.b}")
 	print(f"Training Accuracy: {accuracy:.2f}%")
 
-	# 4. Save the model to a file
 	model_filename = "svm_model.pkl"
 	svm.save_to_file(model_filename)
 
-	# 5. Load the model from the file and test it
 	loaded_svm = SVM.load_from_file(model_filename)
 	loaded_predictions = loaded_svm.predict(X)
 	loaded_accuracy = np.mean(loaded_predictions == y) * 100

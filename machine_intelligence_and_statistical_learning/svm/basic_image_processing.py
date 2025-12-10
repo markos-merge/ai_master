@@ -19,6 +19,19 @@ def show_image(image_data, width=32, height=32, is_grayscale=True):
 
 	img.show()
 
+def save_image( image_data, filename, width=32, height=32, is_grayscale=True ):
+	if is_grayscale:
+		img_array = image_data.reshape(height, width)
+		if np.issubdtype(img_array.dtype, np.floating):
+			img_array = (img_array * 255).astype(np.uint8)
+
+		img = Image.fromarray(img_array, 'L')
+	else:
+		img_array = image_data.reshape(3, height, width).transpose(1, 2, 0)
+		img = Image.fromarray(img_array, 'RGB')
+
+	img.save(filename)
+
 def convertToGrayscale( img_array, to_float = True, width=32, height=32 ):
 	ret = np.zeros( height*width, dtype=np.float32 )
 	color_step = width*height
