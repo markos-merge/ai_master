@@ -8,6 +8,35 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from open_file import load_CIFAR10_testdata, images_to_numpy
 from basic_databases_manipulation import getSamplesFromLabels
 from basic_image_processing import to_hog, save_image
+import joblib
+import cupy as cp
+import gc
+from sklearn.base import BaseEstimator, TransformerMixin
+
+class ToNumpy(BaseEstimator, TransformerMixin):
+	def fit(self, X, y=None):
+		return self
+	def transform(self, X):
+		if hasattr(X, 'get'):
+			return X.get()
+		return X
+
+class GPUCleaner(BaseEstimator, TransformerMixin):
+	def fit(self, X, y=None):
+		self._clean()
+		return self
+
+	def transform(self, X):
+		self._clean()
+		return X
+
+	def _clean(self):
+		gc.collect()
+		mempool = cp.get_default_memory_pool()
+		mempool.free_all_blocks()
+		pinned_mempool = cp.get_default_pinned_memory_pool()
+		pinned_mempool.free_all_blocks()
+# -------------------------------------------------
 
 def findFailedClassification( classifier_i, classifier_j, x_test, y_test, output_folder ):
 	os.makedirs(output_folder, exist_ok=True)
@@ -71,5 +100,45 @@ def main():
 			findFailedClassification(i, j, x_test, y_test, output_folder_failed)
 			findSuccessfulClassification(i, j, x_test, y_test, output_folder_successful)
 
+def findFailedClassificationKPCALDAKNN(classifier, target_label, x_test, y_test, output_folder):
+	os.makedirs(output_folder, exist_ok=True)
+	x_class, _ = getSamplesFromLabels(x_test, y_test, target_label)
+	x_class_transf = to_hog(x_class)
+
+	for i in range(x_class_transf.shape[0]):
+		y_predict = classifier.predict(x_class_transf[i].reshape(1, -1))
+		if y_predict != target_label:
+			filename = f"wrong_classification_for_label_{target_label}_{y_predict}.png"
+			save_image(x_class[i], os.path.join(output_folder, filename), is_grayscale=True)
+			break
+
+def findSuccessfulClassificationKPCALDAKNN(classifier, target_label, x_test, y_test, output_folder):
+	os.makedirs(output_folder, exist_ok=True)
+	x_class, _ = getSamplesFromLabels(x_test, y_test, target_label)
+	x_class_transf = to_hog(x_class)
+
+	for i in range(x_class_transf.shape[0]):
+		y_predict = classifier.predict(x_class_transf[i].reshape(1, -1))
+		if y_predict == target_label:
+			filename = f"successful_classification_for_label_{target_label}_{y_predict}.png"
+			save_image(x_class[i], os.path.join(output_folder, filename), is_grayscale=True)
+			break
+
+def main_kpca_lda_knn():
+	test_data_folder = './cifar-10'
+	cifar10_testdata = load_CIFAR10_testdata( test_data_folder )
+	x_test, y_test = images_to_numpy( cifar10_testdata, to_gray=True )
+
+	model_path = os.path.join(os.path.dirname(__file__), '..', 'cifar_10_related_implementation', 'cifar_10_best_kpca_knn_model.joblib')
+	model = joblib.load( model_path )
+
+	output_folder_failed = "report/assets/failed_classifications_kpca_lda_knn"
+	output_folder_successful = "report/assets/successful_classifications_kpca_lda_knn"
+
+	for label in range(10):
+		findFailedClassificationKPCALDAKNN(model, label, x_test, y_test, output_folder_failed)
+		findSuccessfulClassificationKPCALDAKNN(model, label, x_test, y_test, output_folder_successful)
+
 if __name__ == "__main__":
-	main()
+	# main()
+	main_kpca_lda_knn()
