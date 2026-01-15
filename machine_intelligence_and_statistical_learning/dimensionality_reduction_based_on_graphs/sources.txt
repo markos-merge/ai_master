@@ -1,0 +1,7 @@
+https://eclass.uniwa.gr/modules/document/file.php/DMML101/3.%CE%9C%CE%B5%CE%BB%CE%AD%CF%84%CE%B7%2C%20%CF%83%CF%87%CE%B5%CE%B4%CE%B9%CE%B1%CF%83%CE%BC%CF%8C%CF%82%20%CE%BA%CE%B1%CE%B9%20%CE%B5%CF%86%CE%B1%CF%81%CE%BC%CE%BF%CE%B3%CE%AE%20%CF%84%CE%B5%CF%87%CE%BD%CE%B9%CE%BA%CF%8E%CE%BD%20%CE%9A%CE%B1%CF%84%CE%B7%CE%B3%CE%BF%CF%81%CE%B9%CE%BF%CF%80%CE%BF%CE%AF%CE%B7%CF%83%CE%B7%CF%82%20%28Classification%29/3.2.%20Clustering%20%CE%91%CE%BD%CE%AC%CE%BB%CF%85%CF%83%CE%B7%20%CE%91%CE%BB%CE%B3%CE%BF%CF%81%CE%AF%CE%B8%CE%BC%CE%BF%CF%85%20%28%CF%80%CE%BB%CE%AE%CF%81%CE%B7%CF%82%20-%20%CF%80%CE%B1%CF%81%CE%BF%CF%85%CF%83%CE%AF%CE%B1%CF%83%CE%B7%29.pdf
+https://stanford.edu/~cpiech/cs221/handouts/kmeans.html
+https://developer.nvidia.com/blog/gpu-accelerated-hierarchical-dbscan-with-rapids-cuml-lets-get-back-to-the-future/
+https://people.csail.mit.edu/dsontag/courses/ml14/notes/Luxburg07_tutorial_spectral_clustering.pdf
+https://medium.com/@Sunil_Kumawat/performance-metrics-for-clustering-9badee0b7db8
+https://umap-learn.readthedocs.io/en/latest/how_umap_works.html
+https://academic.oup.com/imaiai/article/8/1/181/5045955?login=false
