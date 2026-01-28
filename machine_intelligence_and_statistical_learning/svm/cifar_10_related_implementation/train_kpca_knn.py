@@ -101,7 +101,8 @@ def testKPCAKnn():
 	x_hog = to_hog( x_test )
 	x_hog = x_hog.astype(np.float32)
 
-	model = joblib.load( "cifar_10_best_kpca_knn_model.joblib")
+	model = joblib.load( "cifar_10_related_implementation/cifar_10_best_kpca_knn_model.joblib")
+	print( model )
 	accuracy = model.score( x_hog, y_test )
 	print(f"Test Accuracy with best estimator: {accuracy:.2f}%")
 	class_report = classification_report( y_test, model.predict( x_hog ) )
@@ -110,5 +111,5 @@ def testKPCAKnn():
 		f.write( class_report )
 
 if __name__ == "__main__":
-	trainKPCAKnn()
+	# trainKPCAKnn()
 	testKPCAKnn()
