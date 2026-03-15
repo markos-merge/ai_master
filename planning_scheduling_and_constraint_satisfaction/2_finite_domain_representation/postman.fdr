@@ -1,0 +1,73 @@
+POSTMAN = {p};
+LOCATIONS = {loc_1, loc_2, loc_3, loc_4, loc_5, loc_6, loc_7, loc_8, loc_9, loc_10, loc_11, loc_12, loc_13, loc_14};
+BOX = {b};
+LETTER = {l1, l2, l3};
+LETTER_POS = LOCATIONS + POSTMAN + { nil };
+METRO = { blue, red, nil };
+
+is_train_station( loc_2 ); is_train_station( loc_3 ); is_train_station( loc_6 );
+is_train_station( loc_7 ); is_train_station( loc_8 );
+
+blue_station( loc_2 ); blue_station( loc_3 );
+blue_station( loc_6 ); blue_station( loc_7 ); blue_station( loc_8 );
+blue_metro_con( loc_2, loc_3 ); blue_metro_con( loc_5, loc_7 ); blue_metro_con( loc_7, loc_8 );
+blue_metro_con( loc_8, loc_6 ); blue_metro_con( loc_6, loc_2 );
+
+red_station( loc_7 ); red_station( loc_8 ); red_station( loc_6 );
+red_metro_con( loc_6, loc_5 ); red_metro_con( loc_5, loc_7 ); red_metro_con( loc_7, loc_8 );
+red_metro_con( loc_9, loc_6 );
+
+road_con( loc_6, loc_10 ); road_con( loc_10, loc_9 ); road_con( loc_11, loc_9 ); road_con( loc_11, loc_2 );
+road_con( loc_2, loc_1 );  road_con( loc_2 , loc_3 ); road_con( loc_3 , loc_4 ); road_con( loc_4 , loc_5 );
+road_con( loc_5, loc_12 ); road_con( loc_5 , loc_7 ); road_con( loc_7 , loc_8 ); road_con( loc_8 , loc_10 );
+road_con( loc_8, loc_13 ); road_con( loc_13, loc_14 );
+
+postbox_loc( loc_7 );
+
+loc_letter( l1 ): LETTER_POS;
+loc_letter( l2 ): LETTER_POS;
+loc_postman( p ): LOCATIONS;
+is_on_metro_line( p ): METRO;
+
+pick_letter( P: POSTMAN, L: LETTER, LOC: LOCATIONS )
+pre: loc_letter( L ) = LOC & loc_postman( P ) = LOC & is_on_metro_line( P ) = nil
+eff: loc_letter( L ) <- P;
+
+deliver_letter( P: POSTMAN, L: LETTER, B: BOX, LOC: LOCATIONS )
+pre: loc_letter( L ) = P & loc_postman( P ) = LOC & postbox_loc( LOC ) & is_on_metro_line( P ) = nil
+eff: loc_letter( L ) <- nil;
+
+move_forward( P: POSTMAN, L1: LOCATIONS, L2: LOCATIONS )
+pre: road_con( L1, L2 ) & loc_postman( P ) = L1 & is_on_metro_line( P ) = nil
+eff: loc_postman( P ) <- L2;
+
+move_backward( P: POSTMAN, L1: LOCATIONS, L2: LOCATIONS )
+pre: road_con( L1, L2 ) & loc_postman( P ) = L2
+eff: loc_postman( P ) <- L1;
+
+embark_blue_metro( P: POSTMAN, L: LOCATIONS )
+pre: blue_station( L ) & loc_postman( P ) = L & is_on_metro_line( P )= nil
+eff: is_on_metro_line( P ) <- blue;
+
+disembark_blue_metro( P:POSTMAN, L: LOCATIONS )
+pre: loc_postman( P ) = L & is_on_metro_line( P ) = blue
+eff: is_on_metro_line( P ) <- nil;
+
+embark_red_metro( P: POSTMAN, L: LOCATIONS )
+pre: blue_station( L ) & loc_postman( P ) = L & is_on_metro_line( P ) = nil
+eff: is_on_metro_line( P ) <- red;
+
+disembark_red_metro( P:POSTMAN, L: LOCATIONS )
+pre: loc_postman( P ) = L & is_on_metro_line( P ) = red
+eff: is_on_metro_line( P ) <- nil;
+
+move_blue_metro( P: POSTMAN, L1: LOCATIONS, L2: LOCATIONS, M: METRO )
+pre: loc_postman( P ) = L1 & blue_metro_con( L1, L2 ) & is_on_metro_line( P ) = blue
+eff: loc_postman( P ) <- L2;
+
+move_red_metro( P: POSTMAN, L1: LOCATIONS, L2: LOCATIONS, M: METRO )
+pre: loc_postman( P ) = L1 & red_metro_con( L1, L2 ) & is_on_metro_line( P ) = red
+eff: loc_postman( P ) <- L2;
+
+initial = { loc_postman( p )<-loc_14, is_on_metro_line( p )<-nil, loc_letter( l2 )<-loc_10, loc_letter( l1 )<-loc_13 };
+goals = { loc_letter(l1)<-nil, loc_letter(l2)<-nil };
